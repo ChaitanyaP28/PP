@@ -274,8 +274,13 @@
         return;
       }
 
-      if (cycle < 20 || cycle > 45 || periodLength < 1 || periodLength > 10) {
-        alert("Invalid cycle or period length.");
+      if (cycle < 20 || cycle > 45) {
+        alert("Cycle length must be between 20 and 45 days.");
+        return;
+      }
+      
+      if (periodLength < 1 || periodLength > 10) {
+        alert("Period length must be between 1 and 10 days.");
         return;
       }
 
