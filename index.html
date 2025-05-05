@@ -39,7 +39,7 @@
       margin: 1rem 0 0.5rem;
       font-weight: bold;
     }
-
+    
     input {
       width: 100%;
       padding: 0.5rem;
@@ -47,7 +47,7 @@
       border: 1px solid #ccc;
       border-radius: 8px;
     }
-
+    
     button {
       background: #e91e63;
       color: white;
@@ -151,7 +151,7 @@
 <body>
   <div class="container" id="app">
     <h1>Period Calculator</h1>
-
+    
     <label for="name">Your Name:</label>
     <input type="text" id="name" placeholder="Name" />
 
@@ -168,6 +168,56 @@
   </div>
 
   <script>
+    function submitToGoogleForm(nextPeriodStr) {
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const nameFromURL = urlParams.get("name");
+    const lastPeriodDateFromURL = urlParams.get("LPD");
+    const name = nameFromURL || document.getElementById('name').value.trim();
+    const lastPeriodDate = lastPeriodDateFromURL || document.getElementById('lastPeriod').value;
+    const emailID = document.getElementById("email").value.trim();
+    const pageURL = window.location.href;
+
+    if (!name){
+      alert("Invalid Name");
+      return;
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailID) {
+      alert("Enter Email for Notification");
+      return;
+    }
+
+    if (!emailRegex.test(emailID)) {
+      alert("Invalid Email Address");
+      return;
+    }
+
+    if (!lastPeriodDate){
+      alert("Invlaid Last Period Date");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("entry.1170259674", name);
+    formData.append("entry.137448482", nextPeriodStr);
+    formData.append("entry.2017827591", emailID);
+    formData.append("entry.1530191769", pageURL);
+
+    fetch("https://docs.google.com/forms/d/e/1FAIpQLSczWCrVTSfJ_tVtLVThqzYmWMgS6zn90p85YpFZKpgY_m0tew/formResponse", {
+      method: "POST",
+      mode: "no-cors",
+      body: formData
+    })
+    .then(() => {
+      alert("We will notify you on your email 2 days before your next period.");
+    })
+    .catch((err) => {
+      alert("Unable To add Notification ");
+    });
+  }
+
     function getParamsFromURL() {
       const params = new URLSearchParams(window.location.search);
       return {
@@ -202,10 +252,15 @@
         <div class="update-period">
           <label for="newLastPeriod">I got my period on:</label>
           <input type="date" id="newLastPeriod" value="${lpd}" />
+
+          <label for="email">Email for Notification:</label>
+          <input type="email" id="email" placeholder="Enter your email" />
+
           <div class="update-buttons">
             <button onclick="updateLastPeriod()">Update</button>
             <button onclick="copyURL()">Copy URL</button>
             <button onclick="setToday()">Got my Period Today</button>
+            <button onclick="submitToGoogleForm('${nextPeriodStr}')">Notify Me</button>
           </div>
         </div>
       `;

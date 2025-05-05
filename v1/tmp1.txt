@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Period Calculator</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f9f9fb;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      background: #fff;
+      padding: 2rem;
+      border-radius: 15px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      color: #e91e63;
+      margin-bottom: 1rem;
+    }
+
+    label {
+      display: block;
+      margin: 1rem 0 0.5rem;
+      font-weight: bold;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.5rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+
+    button {
+      margin-top: 1.5rem;
+      width: 100%;
+      background: #e91e63;
+      color: white;
+      border: none;
+      padding: 0.7rem;
+      font-size: 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #c2185b;
+    }
+
+    .result {
+      font-size: 1.2rem;
+      margin-top: 1rem;
+      color: #444;
+    }
+
+    .calendar {
+      margin-top: 2rem;
+    }
+
+    .calendar table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .calendar th,
+    .calendar td {
+      border: 1px solid #ccc;
+      padding: 0.6rem;
+      text-align: center;
+      width: 14.2%;
+    }
+
+    .calendar th {
+      background-color: #f2f2f2;
+    }
+
+    .calendar .prev,
+    .calendar .next {
+      cursor: pointer;
+      font-size: 1.5rem;
+      padding: 0.5rem;
+      background: #e91e63;
+      color: white;
+      border-radius: 50%;
+      border: none;
+      margin: 0 1rem;
+    }
+
+    .calendar .prev:hover,
+    .calendar .next:hover {
+      background: #c2185b;
+    }
+
+    .ovulation {
+      background-color: #a5d6a7 !important;
+      font-weight: bold;
+      border: 2px solid #388e3c;
+    }
+
+    .fertile {
+      background-color: #90caf9 !important;
+      border: 2px solid #1976d2;
+    }
+
+    .period {
+      background-color: #ffccbc !important;
+      border: 2px solid #f44336;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="app">
+    <h1>Period Calculator</h1>
+
+    <label for="name">Your Name:</label>
+    <input type="text" id="name" placeholder="e.g. Alex" />
+
+    <label for="lastPeriod">Last Period Date:</label>
+    <input type="date" id="lastPeriod" required />
+
+    <label for="cycleLength">Average Cycle Length (days):</label>
+    <input type="number" id="cycleLength" value="28" min="20" max="45" required />
+
+    <label for="periodLength">Period Length (days):</label>
+    <input type="number" id="periodLength" value="5" min="1" max="7" required />
+
+    <button onclick="calculateAndShowResult()">Calculate</button>
+  </div>
+
+  <script>
+    let currentYear, currentMonth;
+
+    function getParamsFromURL() {
+      const params = new URLSearchParams(window.location.search);
+      return {
+        name: params.get("name"),
+        lpd: params.get("LPD"),
+        cycle: parseInt(params.get("Cyc")),
+        periodLength: parseInt(params.get("PL"))
+      };
+    }
+
+    function showResult(name, lpd, cycle, periodLength) {
+      const lastPeriod = new Date(lpd);
+
+      // Calculate the next period date
+      const nextPeriod = new Date(lastPeriod);
+      nextPeriod.setDate(nextPeriod.getDate() + cycle);
+      const nextPeriodStr = nextPeriod.toISOString().split("T")[0];
+
+      // Calculate ovulation date (14 days before the next period)
+      const ovulationDate = new Date(nextPeriod);
+      ovulationDate.setDate(ovulationDate.getDate() - 14);
+      const ovulationStr = ovulationDate.toISOString().split("T")[0];
+
+      // Calculate the fertile window (5 days before and 4 days after ovulation)
+      const fertileWindowDays = [];
+      for (let i = -5; i <= 4; i++) {
+        const fertileDate = new Date(ovulationDate);
+        fertileDate.setDate(fertileDate.getDate() + i);
+        fertileWindowDays.push(fertileDate.toISOString().split("T")[0]);
+      }
+
+      // Calculate period range: 3 days before, the period days, and 3 days after
+      const periodDays = [];
+      for (let i = -3; i < periodLength + 3; i++) {
+        const periodDate = new Date(lastPeriod);
+        periodDate.setDate(periodDate.getDate() + i);
+        periodDays.push(periodDate.toISOString().split("T")[0]);
+      }
+
+      currentYear = ovulationDate.getFullYear();
+      currentMonth = ovulationDate.getMonth();
+
+      const app = document.getElementById("app");
+      app.innerHTML = `
+        <h1>Hey, ${name}!</h1>
+        <div class="result">🩸 Your next period is on <strong>${nextPeriodStr}</strong></div>
+        <div class="result">💡 Your next ovulation is on <strong>${ovulationStr}</strong></div>
+        <div class="calendar">${generateCalendar(ovulationDate, fertileWindowDays, periodDays)}</div>
+      `;
+    }
+
+    function generateCalendar(ovulationDate, fertileDays, periodDays) {
+      const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+      const lastDate = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+      const ovulationStr = ovulationDate.toISOString().split("T")[0];
+
+      let html = `
+        <div style="display: flex; justify-content: center; align-items: center;">
+          <button class="prev" onclick="changeMonth(-1)">&#60;</button>
+          <div><strong>${new Date(currentYear, currentMonth).toLocaleString('default', { month: 'long' })} ${currentYear}</strong></div>
+          <button class="next" onclick="changeMonth(1)">&#62;</button>
+        </div>
+        <table><thead><tr>
+        <th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th>
+        <th>Thu</th><th>Fri</th><th>Sat</th></tr></thead><tbody><tr>`;
+
+      let day = 1;
+      for (let i = 0; i < firstDay; i++) html += `<td></td>`;
+
+      for (let i = firstDay; i < 7; i++) {
+        html += renderDayCell(day++, ovulationStr, fertileDays, periodDays);
+      }
+
+      html += `</tr>`;
+
+      while (day <= lastDate) {
+        html += `<tr>`;
+        for (let i = 0; i < 7 && day <= lastDate; i++) {
+          html += renderDayCell(day++, ovulationStr, fertileDays, periodDays);
+        }
+        html += `</tr>`;
+      }
+
+      html += `</tbody></table>`;
+      return html;
+    }
+
+    function renderDayCell(day, ovulationStr, fertileDays, periodDays) {
+      const dateStr = new Date(currentYear, currentMonth, day).toISOString().split("T")[0];
+      let className = "";
+      if (periodDays.includes(dateStr)) {
+        className = "period";
+      } else if (dateStr === ovulationStr) {
+        className = "ovulation";
+      } else if (fertileDays.includes(dateStr)) {
+        className = "fertile";
+      }
+      return `<td class="${className}">${day}</td>`;
+    }
+
+    function changeMonth(direction) {
+      currentMonth += direction;
+
+      if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+      } else if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+      }
+
+      const { name, lpd, cycle, periodLength } = getParamsFromURL();
+      if (name && lpd && !isNaN(cycle)) {
+        showResult(decodeURIComponent(name), lpd, cycle, periodLength);
+      }
+    }
+
+    function calculateAndShowResult() {
+      const name = document.getElementById('name').value.trim();
+      const lpd = document.getElementById('lastPeriod').value;
+      const cycle = parseInt(document.getElementById('cycleLength').value);
+      const periodLength = parseInt(document.getElementById('periodLength').value);
+
+      if (!name || !lpd || isNaN(cycle) || isNaN(periodLength)) {
+        alert("Please fill in all fields.");
+        return;
+      }
+
+      showResult(name, lpd, cycle, periodLength);
+    }
+
+    window.onload = () => {
+      const { name, lpd, cycle, periodLength } = getParamsFromURL();
+
+      if (name && lpd && !isNaN(cycle)) {
+        showResult(decodeURIComponent(name), lpd, cycle, periodLength);
+      } else {
+        if (name) document.getElementById('name').value = decodeURIComponent(name);
+        if (lpd) document.getElementById('lastPeriod').value = lpd;
+        if (cycle) document.getElementById('cycleLength').value = cycle;
+        if (periodLength) document.getElementById('periodLength').value = periodLength;
+      }
+    };
+  </script>
+</body>
+</html>
